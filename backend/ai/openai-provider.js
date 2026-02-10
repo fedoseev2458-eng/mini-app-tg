@@ -9,27 +9,18 @@ const { toPngForApi } = require("../image-utils");
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// Edit endpoint принимает только dall-e-2 (не gpt-image-1.5)
+// DALL-E: edit = dall-e-2 (image-to-image), generate = dall-e-3 (text-to-image)
 const IMAGE_EDIT_MODEL = "dall-e-2";
+const IMAGE_GENERATE_MODEL = "dall-e-3";
 
 function truncatePrompt(p, max) {
   return p.length > max ? p.slice(0, max) : p;
 }
 
-function extFromMime(mimetype) {
-  if (!mimetype) return "png";
-  const m = mimetype.toLowerCase();
-  if (m.includes("png")) return "png";
-  if (m.includes("jpeg") || m.includes("jpg")) return "jpg";
-  return "png";
-}
-
-/** Приводит буфер к формату, который принимает API (PNG или JPEG). Остальное конвертирует в PNG. */
-async function prepareImageBuffer(buffer, mimetype) {
-  const ext = extFromMime(mimetype);
-  if (ext === "png" || ext === "jpg") return { buffer, ext };
+/** Всегда конвертируем в PNG — Edit API стабильно принимает только PNG. */
+async function prepareImageForEdit(buffer) {
   const png = await toPngForApi(buffer);
-  return { buffer: png, ext: "png" };
+  return png;
 }
 
 async function editImage(imageBytes, prompt, filename = "room.png") {
@@ -54,7 +45,7 @@ async function editImage(imageBytes, prompt, filename = "room.png") {
 
 function generateFromText(prompt) {
   return client.images.generate({
-    model: "dall-e-3",
+    model: IMAGE_GENERATE_MODEL,
     prompt: truncatePrompt(prompt, PROMPT_MAX_CHARS),
     size: "1024x1024",
     quality: "standard",
@@ -63,22 +54,22 @@ function generateFromText(prompt) {
 }
 
 class OpenAIProvider {
-  async redesignRoom(imageBytes, roomType, style, budget, userText, mimetype = "") {
-    const { buffer, ext } = await prepareImageBuffer(imageBytes, mimetype);
+  async redesignRoom(imageBytes, roomType, style, budget, userText, _mimetype = "") {
+    const buffer = await prepareImageForEdit(imageBytes);
     const styleDesc = STYLES[style] || STYLES.minimalist;
     const budgetDesc = BUDGETS[budget] || BUDGETS.medium;
     const prompt = getRoomPrompt(roomType, styleDesc, budgetDesc, userText || "");
     const full = `Redesign this room. Keep the same layout and camera angle. ${prompt} Photorealistic interior.`;
-    return editImage(buffer, full, `room.${ext}`);
+    return editImage(buffer, full, "room.png");
   }
 
-  async redesignApartment(planImageBytes, userPreferences, mimetype = "") {
-    const { buffer, ext } = await prepareImageBuffer(planImageBytes, mimetype);
+  async redesignApartment(planImageBytes, userPreferences, _mimetype = "") {
+    const buffer = await prepareImageForEdit(planImageBytes);
     const viewPrompts = getApartmentViewPrompts(userPreferences).slice(0, APARTMENT_IMAGES_COUNT);
     const images = [];
     for (let i = 0; i < viewPrompts.length; i++) {
       const full = `Based on this floor plan, generate a photorealistic interior photo. ${viewPrompts[i]} Professional interior photography, natural lighting.`;
-      const url = await editImage(buffer, full, `plan_${i}.${ext}`);
+      const url = await editImage(buffer, full, `plan_${i}.png`);
       images.push(url);
     }
     return images;
