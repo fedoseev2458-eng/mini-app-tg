@@ -5,7 +5,6 @@ const cors = require("cors");
 const multer = require("multer");
 const { getAIProvider } = require("./ai/factory");
 const { saveProject, getProjects, clearProjects } = require("./storage");
-const { toPngForApi } = require("./image-utils");
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -31,15 +30,15 @@ const redesignHandler = async (req, res) => {
     if (!image || !image.buffer) {
       return res.status(400).json({ error: "No image file" });
     }
-    const imageBuffer = await toPngForApi(image.buffer);
     const { room_type, style, budget, text } = req.body || {};
     const provider = getAIProvider();
     const imageUrl = await provider.redesignRoom(
-      imageBuffer,
+      image.buffer,
       room_type || "living_room",
       style || "minimalist",
       budget || "medium",
-      text || ""
+      text || "",
+      image.mimetype || ""
     );
     saveProject(userId, { room_type, style, image: imageUrl });
     res.json({ image: imageUrl });
@@ -64,10 +63,9 @@ app.post("/redesign-apartment", upload.single("plan"), async (req, res) => {
     if (!plan || !plan.buffer) {
       return res.status(400).json({ error: "No plan file" });
     }
-    const planBuffer = await toPngForApi(plan.buffer);
     const preferences = req.body?.preferences || "";
     const provider = getAIProvider();
-    const imageUrls = await provider.redesignApartment(planBuffer, preferences);
+    const imageUrls = await provider.redesignApartment(plan.buffer, preferences, plan.mimetype || "");
     saveProject(userId, { type: "apartment", images: imageUrls });
     res.json({ images: imageUrls });
   } catch (err) {
@@ -88,10 +86,9 @@ app.post("/api/redesign-apartment", upload.single("plan"), async (req, res) => {
     if (!plan || !plan.buffer) {
       return res.status(400).json({ error: "No plan file" });
     }
-    const planBuffer = await toPngForApi(plan.buffer);
     const preferences = req.body?.preferences || "";
     const provider = getAIProvider();
-    const imageUrls = await provider.redesignApartment(planBuffer, preferences);
+    const imageUrls = await provider.redesignApartment(plan.buffer, preferences, plan.mimetype || "");
     saveProject(userId, { type: "apartment", images: imageUrls });
     res.json({ images: imageUrls });
   } catch (err) {

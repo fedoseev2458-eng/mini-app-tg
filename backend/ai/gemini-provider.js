@@ -39,7 +39,7 @@ function generateImageFallback(prompt) {
 }
 
 class GeminiProvider {
-  async redesignRoom(imageBytes, roomType, style, budget, userText) {
+  async redesignRoom(imageBytes, roomType, style, budget, userText, _mimetype = "") {
     const analysis = await analyzeImage(imageBytes, getVisionAnalysisPrompt());
     const styleDesc = STYLES[style] || STYLES.minimalist;
     const budgetDesc = BUDGETS[budget] || BUDGETS.medium;
@@ -50,7 +50,7 @@ class GeminiProvider {
     throw new Error("Image generation: set OPENAI_API_KEY for DALL-E fallback or use AI_PROVIDER=openai.");
   }
 
-  async redesignApartment(planImageBytes, userPreferences) {
+  async redesignApartment(planImageBytes, userPreferences, _mimetype = "") {
     const analysis = await analyzeImage(planImageBytes, getPlanAnalysisPrompt());
     const viewPrompts = getApartmentViewPrompts(userPreferences).slice(0, APARTMENT_IMAGES_COUNT);
     const images = [];
