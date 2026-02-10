@@ -18,9 +18,10 @@ async function editImage(imageBytes, prompt, filename = "room.jpg") {
   fs.writeFileSync(tmpPath, imageBytes);
   try {
     const data = await client.images.edit({
-      model: "gpt-image-1.5",
+      model: "dall-e-2",
       image: fs.createReadStream(tmpPath),
       prompt: truncatePrompt(prompt, PROMPT_MAX_CHARS),
+      size: "1024x1024",
     });
     const d = data.data[0];
     if (d.url) return d.url;

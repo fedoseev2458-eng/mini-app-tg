@@ -21,9 +21,10 @@ function getApartmentViewPrompts(userPreferences) {
   const base = getApartmentPrompt(userPreferences);
   return [
     `Generate a photorealistic interior photo: living room and kitchen. ${base} High-end interior photography, natural daylight.`,
-    `Generate a photorealistic interior photo: bedroom. ${base} Cozy, professional photo, soft lighting.`,
-    `Generate a photorealistic interior photo: bathroom and toilet. ${base} Clean, modern, realistic materials.`,
+    `Generate a photorealistic interior photo: bedroom(s). ${base} Cozy, professional photo, soft lighting.`,
+    `Generate a photorealistic interior photo: all bathrooms and toilets (sanitary zones). ${base} Clean, modern, realistic materials.`,
     `Generate a photorealistic interior photo: corridor, entrance, hallway. ${base} Welcoming space, realistic lighting.`,
+    `Generate a photorealistic interior photo: additional room (dining, office or second bedroom). ${base} Professional interior, natural lighting.`,
   ];
 }
 
