@@ -8,6 +8,9 @@ const { PROMPT_MAX_CHARS, APARTMENT_IMAGES_COUNT } = require("./config");
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// Edit endpoint принимает только dall-e-2 (не gpt-image-1.5)
+const IMAGE_EDIT_MODEL = "dall-e-2";
+
 function truncatePrompt(p, max) {
   return p.length > max ? p.slice(0, max) : p;
 }
@@ -18,7 +21,7 @@ async function editImage(imageBytes, prompt, filename = "room.jpg") {
   fs.writeFileSync(tmpPath, imageBytes);
   try {
     const data = await client.images.edit({
-      model: "dall-e-2",
+      model: IMAGE_EDIT_MODEL,
       image: fs.createReadStream(tmpPath),
       prompt: truncatePrompt(prompt, PROMPT_MAX_CHARS),
       size: "1024x1024",

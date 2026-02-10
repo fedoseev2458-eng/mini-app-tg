@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { initTelegram, getTelegramUserId } from "./telegram"
 import { getProjects, clearProjects, redesignRoom, redesignApartment, type Project } from "./api"
 import "./styles.css"
@@ -145,8 +145,90 @@ function ResultFullScreen({
   initialIndex?: number
 }) {
   const [index, setIndex] = useState(initialIndex)
+  const [scale, setScale] = useState(1)
+  const [transX, setTransX] = useState(0)
+  const [transY, setTransY] = useState(0)
+  const [isPanning, setIsPanning] = useState(false)
+  const panStart = useRef({ x: 0, y: 0, transX: 0, transY: 0 })
+  const touchStartX = useRef(0)
+  const imageWrapRef = useRef<HTMLDivElement>(null)
+
   const url = images[index]
   const hasMultiple = images.length > 1
+
+  useEffect(() => {
+    setIndex(initialIndex)
+  }, [initialIndex])
+
+  useEffect(() => {
+    setScale(1)
+    setTransX(0)
+    setTransY(0)
+  }, [index])
+
+  const goPrev = () => {
+    if (!hasMultiple) return
+    setIndex((i) => (i <= 0 ? images.length - 1 : i - 1))
+  }
+  const goNext = () => {
+    if (!hasMultiple) return
+    setIndex((i) => (i >= images.length - 1 ? 0 : i + 1))
+  }
+
+  useEffect(() => {
+    const el = imageWrapRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const delta = e.deltaY > 0 ? -0.15 : 0.15
+      setScale((s) => Math.min(4, Math.max(1, s + delta)))
+    }
+    el.addEventListener("wheel", onWheel, { passive: false })
+    return () => el.removeEventListener("wheel", onWheel)
+  }, [])
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (scale <= 1) return
+    e.preventDefault()
+    setIsPanning(true)
+    panStart.current = { x: e.clientX, y: e.clientY, transX, transY }
+  }
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isPanning) return
+    setTransX(panStart.current.transX + e.clientX - panStart.current.x)
+    setTransY(panStart.current.transY + e.clientY - panStart.current.y)
+  }
+  const handleMouseUp = () => setIsPanning(false)
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX
+    if (scale > 1) {
+      setIsPanning(true)
+      panStart.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+        transX,
+        transY,
+      }
+    }
+  }
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (isPanning && scale > 1) {
+      setTransX(panStart.current.transX + e.touches[0].clientX - panStart.current.x)
+      setTransY(panStart.current.transY + e.touches[0].clientY - panStart.current.y)
+    }
+  }
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (scale <= 1 && hasMultiple) {
+      const endX = e.changedTouches[0].clientX
+      const delta = touchStartX.current - endX
+      if (Math.abs(delta) > 50) {
+        if (delta > 0) goNext()
+        else goPrev()
+      }
+    }
+    setIsPanning(false)
+  }
 
   return (
     <div className="result-fullscreen">
@@ -164,24 +246,54 @@ function ResultFullScreen({
               ✕
             </button>
           </div>
-          <div className="result-fullscreen-image-wrap">
-            <img src={url} alt={title} />
+          <div
+            ref={imageWrapRef}
+            className="result-fullscreen-image-wrap result-fullscreen-image-wrap--zoom"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            <div
+              className="result-fullscreen-image-inner"
+              style={{
+                transform: `scale(${scale}) translate(${transX}px, ${transY}px)`,
+              }}
+            >
+              <img src={url} alt={title} draggable={false} />
+            </div>
           </div>
           <div className="result-fullscreen-footer">
             <p className="result-fullscreen-title">{title}</p>
             <p className="result-fullscreen-subtitle">{subtitle}</p>
             {hasMultiple && (
-              <div className="result-fullscreen-dots">
-                {images.map((_, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    className={`result-fullscreen-dot ${i === index ? "active" : ""}`}
-                    onClick={() => setIndex(i)}
-                    aria-label={`Картинка ${i + 1}`}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="result-fullscreen-nav">
+                  <button type="button" className="result-fullscreen-arrow" onClick={goPrev} aria-label="Назад">
+                    ‹
+                  </button>
+                  <span className="result-fullscreen-counter">
+                    {index + 1} / {images.length}
+                  </span>
+                  <button type="button" className="result-fullscreen-arrow" onClick={goNext} aria-label="Вперёд">
+                    ›
+                  </button>
+                </div>
+                <div className="result-fullscreen-dots">
+                  {images.map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      className={`result-fullscreen-dot ${i === index ? "active" : ""}`}
+                      onClick={() => setIndex(i)}
+                      aria-label={`Картинка ${i + 1}`}
+                    />
+                  ))}
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -292,6 +404,7 @@ function RoomScreen({ onBack }: { onBack: () => void }) {
           <p>Нажмите или перетащите фото</p>
         )}
       </div>
+      <p className="upload-hint">Поддерживаются JPEG, PNG, WebP, HEIC и другие форматы</p>
 
       <label className="label">Тип комнаты</label>
       <div className="chips" style={{ marginBottom: 16 }}>
@@ -451,6 +564,7 @@ function ApartmentScreen({ onBack }: { onBack: () => void }) {
           <p>Нажмите или перетащите изображение планировки</p>
         )}
       </div>
+      <p className="upload-hint">Поддерживаются JPEG, PNG, WebP, HEIC и другие форматы</p>
 
       <label className="label">Пожелания к дизайну</label>
       <textarea
@@ -467,7 +581,7 @@ function ApartmentScreen({ onBack }: { onBack: () => void }) {
           <div className="loading-overlay-content">
             <div className="loading-spinner" />
             <p className="loading-overlay-title">Подождите</p>
-            <p className="loading-overlay-desc">Идёт генерация дизайн-проекта (4 фотографии)...</p>
+            <p className="loading-overlay-desc">Идёт генерация дизайн-проекта (5 фотографий)...</p>
           </div>
         </div>
       )}
