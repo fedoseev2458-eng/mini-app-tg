@@ -404,7 +404,6 @@ function RoomScreen({ onBack }: { onBack: () => void }) {
           <p>Нажмите или перетащите фото</p>
         )}
       </div>
-      <p className="upload-hint">Поддерживаются JPEG, PNG, WebP, HEIC и другие форматы</p>
 
       <label className="label">Тип комнаты</label>
       <div className="chips" style={{ marginBottom: 16 }}>
@@ -564,7 +563,6 @@ function ApartmentScreen({ onBack }: { onBack: () => void }) {
           <p>Нажмите или перетащите изображение планировки</p>
         )}
       </div>
-      <p className="upload-hint">Поддерживаются JPEG, PNG, WebP, HEIC и другие форматы</p>
 
       <label className="label">Пожелания к дизайну</label>
       <textarea

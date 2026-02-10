@@ -15,7 +15,7 @@ function truncatePrompt(p, max) {
   return p.length > max ? p.slice(0, max) : p;
 }
 
-async function editImage(imageBytes, prompt, filename = "room.jpg") {
+async function editImage(imageBytes, prompt, filename = "room.png") {
   const tmpDir = os.tmpdir();
   const tmpPath = path.join(tmpDir, filename);
   fs.writeFileSync(tmpPath, imageBytes);
@@ -59,7 +59,7 @@ class OpenAIProvider {
     const images = [];
     for (const viewPrompt of viewPrompts) {
       const full = `Based on this floor plan, generate a photorealistic interior photo. ${viewPrompt} Professional interior photography, natural lighting.`;
-      const url = await editImage(planImageBytes, full, "plan.jpg");
+      const url = await editImage(planImageBytes, full, "plan.png");
       images.push(url);
     }
     return images;

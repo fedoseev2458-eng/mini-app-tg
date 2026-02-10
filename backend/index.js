@@ -5,7 +5,7 @@ const cors = require("cors");
 const multer = require("multer");
 const { getAIProvider } = require("./ai/factory");
 const { saveProject, getProjects, clearProjects } = require("./storage");
-const { toJpegForApi } = require("./image-utils");
+const { toPngForApi } = require("./image-utils");
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -31,7 +31,7 @@ const redesignHandler = async (req, res) => {
     if (!image || !image.buffer) {
       return res.status(400).json({ error: "No image file" });
     }
-    const imageBuffer = await toJpegForApi(image.buffer);
+    const imageBuffer = await toPngForApi(image.buffer);
     const { room_type, style, budget, text } = req.body || {};
     const provider = getAIProvider();
     const imageUrl = await provider.redesignRoom(
@@ -64,7 +64,7 @@ app.post("/redesign-apartment", upload.single("plan"), async (req, res) => {
     if (!plan || !plan.buffer) {
       return res.status(400).json({ error: "No plan file" });
     }
-    const planBuffer = await toJpegForApi(plan.buffer);
+    const planBuffer = await toPngForApi(plan.buffer);
     const preferences = req.body?.preferences || "";
     const provider = getAIProvider();
     const imageUrls = await provider.redesignApartment(planBuffer, preferences);
@@ -88,7 +88,7 @@ app.post("/api/redesign-apartment", upload.single("plan"), async (req, res) => {
     if (!plan || !plan.buffer) {
       return res.status(400).json({ error: "No plan file" });
     }
-    const planBuffer = await toJpegForApi(plan.buffer);
+    const planBuffer = await toPngForApi(plan.buffer);
     const preferences = req.body?.preferences || "";
     const provider = getAIProvider();
     const imageUrls = await provider.redesignApartment(planBuffer, preferences);
