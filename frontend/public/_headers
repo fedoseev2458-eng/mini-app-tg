@@ -1,0 +1,4 @@
+# Не кэшировать главную страницу — всегда подтягивать свежий HTML и ссылки на актуальные assets
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache

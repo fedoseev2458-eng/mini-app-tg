@@ -1,0 +1,17 @@
+{
+  "name": "room-ai",
+  "private": true,
+  "scripts": {
+    "build": "npm install && cd frontend && npm install && npm run build",
+    "dev": "cd frontend && npm run dev",
+    "pages:dev": "wrangler pages dev frontend/dist --compatibility-date=2024-01-01",
+    "pages:deploy": "npm run build && node scripts/prepare-deploy.js && node scripts/deploy-with-retry.js",
+    "pages:deploy:full": "npm run build && (wrangler pages deploy frontend/dist --project-name=room-ai || wrangler pages deploy frontend/dist --project-name=room-ai)"
+  },
+  "dependencies": {
+    "openai": "^4.73.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.63.0"
+  }
+}

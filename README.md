@@ -9,54 +9,135 @@ Telegram Mini App для дизайна интерьера с ИИ.
 3. **AR** — раздел под подключение магазинов мебели (заглушка).
 4. **Мои генерации** — профиль привязан к Telegram, все дизайны сохраняются автоматически.
 
-## Смена нейросети (OpenAI / Gemini)
+## Технологии
 
-В `.env` задайте `AI_PROVIDER=openai` или `AI_PROVIDER=gemini`. По умолчанию — OpenAI.
+- **Backend:** FastAPI (Python) с OpenAI или Gemini
+- **Frontend:** React + TypeScript + Vite
+- **Деплой:** Railway
 
-## Запуск
+## Локальная разработка
 
-**Бэкенд:**
+### Бэкенд
+
 ```bash
 cd backend
 cp .env.example .env
-# Заполните OPENAI_API_KEY
+# Заполните OPENAI_API_KEY или GEMINI_API_KEY
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-**Фронтенд:**
+### Фронтенд
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-Переменная `VITE_API_URL` — URL бэкенда (по умолчанию `http://localhost:8000`).
+Переменная `VITE_API_URL` в `frontend/.env` — URL бэкенда (по умолчанию `http://localhost:8000`).
 
-## Деплой на Vercel (вместо ngrok)
+### Для Telegram Mini App
 
-Постоянный HTTPS URL без ngrok.
+Используйте **ngrok** для публичного URL:
 
-1. **Подключите репозиторий** на [vercel.com](https://vercel.com) → New Project.
+```bash
+ngrok http 8000
+```
 
-2. **Переменные окружения** (Settings → Environment Variables):
-   - `OPENAI_API_KEY` — обязательно
-   - `AI_PROVIDER` — `openai` или `gemini` (по умолчанию openai)
-   - `GEMINI_API_KEY` — только если `AI_PROVIDER=gemini`
-
-3. **Deploy** — Vercel соберёт фронт и задеплоит API.
-
-4. **В BotFather** укажите URL вида `https://room-ai-xxx.vercel.app` как Web App.
-
-5. Готово — Mini App работает по постоянному адресу.
+Скопируйте HTTPS URL (например `https://abc123.ngrok.io`) и укажите его в BotFather как Web App URL.
 
 ---
 
-## Mini App в Telegram (ngrok для локальной разработки)
+## Деплой на Railway
 
-Фронт раздаётся с бэкенда — нужен **один** ngrok на порт 8000.
+### Подготовка
 
-1. **Соберите фронт:** `cd frontend && npm run build`
-2. **Запустите бэкенд:** `cd backend && uvicorn main:app --reload --port 8000`
-3. **Запустите ngrok:** `ngrok http 8000` — скопируйте HTTPS-URL
-4. **В BotFather** укажите этот URL как Web App для Mini App
+1. **Создайте репозиторий на GitHub** и запушьте код:
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git remote add origin https://github.com/ваш-username/room-ai.git
+   git push -u origin main
+   ```
+
+2. **Зарегистрируйтесь на [Railway](https://railway.app)** и подключите GitHub аккаунт.
+
+### Настройка проекта
+
+1. **Создайте новый проект** в Railway → **New Project** → **Deploy from GitHub repo** → выберите репозиторий.
+
+2. **Настройте переменные окружения** (Settings → Variables):
+   - `OPENAI_API_KEY` — ваш ключ OpenAI (обязательно, если используете OpenAI)
+   - `AI_PROVIDER` — `openai` или `gemini` (по умолчанию `openai`)
+   - `GEMINI_API_KEY` — только если `AI_PROVIDER=gemini`
+   - `PORT` — Railway установит автоматически, не меняйте
+
+3. **Настройте деплой:**
+   - Railway автоматически определит Python проект по `Procfile`
+   - Сборка фронтенда происходит автоматически (см. `railway.json`)
+   - Бэкенд запускается через `Procfile`
+
+4. **Получите URL:** Railway выдаст HTTPS URL вида `https://room-ai-production.up.railway.app`
+
+5. **В BotFather** укажите этот URL как Web App URL.
+
+### Как обновить приложение
+
+Просто сделайте `git push` в репозиторий — Railway автоматически пересоберёт и задеплоит:
+
+```bash
+git add .
+git commit -m "Обновление..."
+git push
+```
+
+Railway покажет прогресс деплоя в панели.
+
+---
+
+## Структура проекта
+
+```
+room-ai-project/
+├── backend/          # FastAPI бэкенд
+│   ├── main.py      # Главный файл приложения
+│   ├── ai/          # Провайдеры ИИ (OpenAI, Gemini)
+│   ├── storage.py   # Хранение проектов
+│   └── requirements.txt
+├── frontend/         # React фронтенд
+│   ├── src/
+│   ├── dist/        # Собранный фронтенд (генерируется)
+│   └── package.json
+├── Procfile          # Команда запуска для Railway
+├── railway.json      # Конфигурация Railway
+└── README.md
+```
+
+---
+
+## Переменные окружения
+
+### Backend (`backend/.env`)
+
+```env
+AI_PROVIDER=openai          # openai | gemini
+OPENAI_API_KEY=sk-xxx       # Ключ OpenAI
+GEMINI_API_KEY=xxx          # Только если AI_PROVIDER=gemini
+```
+
+### Frontend (`frontend/.env`)
+
+```env
+VITE_API_URL=http://localhost:8000  # URL бэкенда
+```
+
+На Railway `VITE_API_URL` не нужен — фронтенд будет использовать тот же домен, что и бэкенд.
+
+---
+
+## Примечания
+
+- **Хранение проектов:** Сейчас проекты хранятся в памяти (при перезапуске теряются). Для постоянного хранения можно добавить базу данных (PostgreSQL на Railway) или внешнее хранилище.
+- **3D модели:** Файлы `chair.glb` и `chair.usdz` не включены в деплой для уменьшения размера. Если нужен AR, добавьте их вручную или используйте CDN.

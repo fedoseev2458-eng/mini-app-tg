@@ -1,0 +1,16 @@
+# Cloudflare Pages (больше не используется, оставлено для справки)
+# Если вернётесь к Cloudflare, скопируйте этот файл в wrangler.toml и заполните
+
+name = "room-ai"
+pages_build_output_dir = "frontend/dist"
+compatibility_date = "2024-01-01"
+
+# Для сохранения истории добавь KV:
+# 1. npx wrangler kv namespace create ROOM_AI_PROJECTS
+# 2. Раскомментируй и подставь id:
+# [[kv_namespaces]]
+# binding = "PROJECTS_KV"
+# id = "твой-uuid-из-команды"
+
+# [vars]
+# OPENAI_API_KEY = "ваш-ключ-здесь"

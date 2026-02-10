@@ -2,10 +2,7 @@
 const API_BASE = import.meta.env.VITE_API_URL ?? ""
 
 function headers(): HeadersInit {
-  const h: HeadersInit = {
-    Accept: "application/json",
-    "ngrok-skip-browser-warning": "1", // обход страницы ngrok при API-запросах
-  }
+  const h: HeadersInit = { Accept: "application/json" }
   const userId = (window as unknown as { __tgUserId?: string }).__tgUserId
   if (userId) (h as Record<string, string>)["x-telegram-user-id"] = userId
   return h
@@ -24,6 +21,14 @@ export async function getProjects(): Promise<Project[]> {
   const r = await fetch(`${API_BASE}/projects`, { headers: headers() })
   if (!r.ok) return []
   return r.json()
+}
+
+export async function clearProjects(): Promise<void> {
+  const r = await fetch(`${API_BASE}/projects`, {
+    method: "DELETE",
+    headers: headers(),
+  })
+  if (!r.ok) throw new Error("Не удалось очистить историю")
 }
 
 export async function redesignRoom(

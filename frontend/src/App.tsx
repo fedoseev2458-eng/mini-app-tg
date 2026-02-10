@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { initTelegram, getTelegramUserId } from "./telegram"
-import { getProjects, redesignRoom, redesignApartment, type Project } from "./api"
+import { getProjects, clearProjects, redesignRoom, redesignApartment, type Project } from "./api"
 import "./styles.css"
 
 type Screen = "home" | "room" | "apartment" | "ar" | "profile"
@@ -74,7 +74,7 @@ function HomeScreen({
       <p className="subtitle">Выберите, что хотите спроектировать</p>
 
       <div
-        className="card card-highlight card-interactive"
+        className="card card-interactive"
         role="button"
         tabIndex={0}
         onClick={onRoom}
@@ -100,7 +100,7 @@ function HomeScreen({
       </div>
 
       <div
-        className="card card-ar card-interactive"
+        className="card card-interactive"
         role="button"
         tabIndex={0}
         onClick={onAr}
@@ -136,13 +136,15 @@ function ResultFullScreen({
   onClose,
   title,
   subtitle,
+  initialIndex = 0,
 }: {
   images: string[]
   onClose: () => void
   title: string
   subtitle: string
+  initialIndex?: number
 }) {
-  const [index, setIndex] = useState(0)
+  const [index, setIndex] = useState(initialIndex)
   const url = images[index]
   const hasMultiple = images.length > 1
 
@@ -272,11 +274,12 @@ function RoomScreen({ onBack }: { onBack: () => void }) {
 
       <label className="label">Фото комнаты</label>
       <div
-        className="upload-zone"
+        className={`upload-zone ${image ? "upload-zone--has-file" : ""}`}
         onDrop={handleDrop}
         onDragOver={(e) => e.preventDefault()}
         onClick={() => document.getElementById("room-file")?.click()}
       >
+        {image && <span className="upload-zone-check" aria-hidden>✓</span>}
         <input
           id="room-file"
           type="file"
@@ -430,11 +433,12 @@ function ApartmentScreen({ onBack }: { onBack: () => void }) {
 
       <label className="label">Планировка квартиры</label>
       <div
-        className="upload-zone"
+        className={`upload-zone ${plan ? "upload-zone--has-file" : ""}`}
         onDrop={handleDrop}
         onDragOver={(e) => e.preventDefault()}
         onClick={() => document.getElementById("plan-file")?.click()}
       >
+        {plan && <span className="upload-zone-check" aria-hidden>✓</span>}
         <input
           id="plan-file"
           type="file"
@@ -490,7 +494,40 @@ function ApartmentScreen({ onBack }: { onBack: () => void }) {
   )
 }
 
+// USDZ для iOS — хостится на нашем домене после деплоя (файл в public/)
+function getArDemoIosUsdz() {
+  if (typeof window === "undefined") return "/chair.usdz"
+  return window.location.origin + "/chair.usdz"
+}
+
+function isMobile() {
+  return /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent)
+}
+
+function isAndroid() {
+  return /Android/i.test(navigator.userAgent)
+}
+
+function isIOS() {
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent)
+}
+
 function ArScreen({ onBack }: { onBack: () => void }) {
+  const [arHint, setArHint] = useState<string | null>(null)
+
+  const handleArClick = async () => {
+    setArHint(null)
+    if (!isMobile()) {
+      setArHint("AR работает только на телефоне. Откройте приложение с телефона.")
+      return
+    }
+    if (!isAndroid()) return
+    const glbUrl = typeof window !== "undefined" ? window.location.origin + "/chair.glb" : "/chair.glb"
+    const sceneViewerUrl = `https://arvr.google.com/scene-viewer/1.2?mode=ar_preferred&file=${encodeURIComponent(glbUrl)}`
+    const opened = window.open(sceneViewerUrl, "_blank", "noopener")
+    setArHint(opened ? "Открылась вкладка — нажмите «Посмотреть в комнате» там." : "Разрешите всплывающие окна и нажмите снова.")
+  }
+
   return (
     <div className="page">
       <button type="button" className="back-btn" onClick={onBack}>
@@ -499,12 +536,45 @@ function ArScreen({ onBack }: { onBack: () => void }) {
 
       <h1>AR — мебель в комнате</h1>
       <p className="subtitle">
-        Подключите магазин мебели, чтобы отображать товары в вашей комнате в дополненной реальности
+        Подключите магазин мебели или попробуйте тестовый диван в дополненной реальности
       </p>
+
+      <section className="ar-demo">
+        <h2 className="ar-demo-title">Попробовать AR</h2>
+        <p className="ar-demo-desc">
+          Нажмите «Посмотреть в комнате» и наведите камеру на пол — стул появится у вас в комнате.
+          Лучше всего открыть с телефона.
+        </p>
+        <div className="ar-demo-viewer">
+          <div className="ar-demo-preview">
+            <div className="ar-demo-preview-icon" aria-hidden>AR</div>
+            <p className="ar-demo-preview-text">Стул в AR</p>
+          </div>
+          {isIOS() ? (
+            <a
+              rel="ar"
+              href={getArDemoIosUsdz()}
+              className="ar-view-in-room-btn"
+            >
+              Посмотреть в комнате
+            </a>
+          ) : (
+            <button type="button" className="ar-view-in-room-btn" onClick={handleArClick}>
+              Посмотреть в комнате
+            </button>
+          )}
+        </div>
+        {arHint && <p className="ar-demo-feedback">{arHint}</p>}
+        <p className="ar-demo-hint">
+          {isIOS()
+            ? "Нажмите кнопку — AR откроется прямо здесь."
+            : "На Android откроется вкладка с просмотром в AR."}
+        </p>
+      </section>
 
       <div className="ar-placeholder">
         <div className="ar-placeholder-icon">AR</div>
-        <p className="ar-placeholder-title">Магазин не подключён</p>
+        <p className="ar-placeholder-title">Подключить свой магазин</p>
         <p className="ar-placeholder-desc">
           Здесь можно будет подключить любой магазин мебели. После подключения вы сможете выбирать
           товары и смотреть их в своей комнате через камеру в режиме AR.
@@ -521,6 +591,9 @@ function ArScreen({ onBack }: { onBack: () => void }) {
 function ProfileScreen({ onBack }: { onBack: () => void }) {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
+  const [expandedImages, setExpandedImages] = useState<string[] | null>(null)
+  const [expandedTitle, setExpandedTitle] = useState("")
+  const [expandedIndex, setExpandedIndex] = useState(0)
 
   useEffect(() => {
     getProjects().then((data) => {
@@ -528,6 +601,16 @@ function ProfileScreen({ onBack }: { onBack: () => void }) {
       setLoading(false)
     })
   }, [])
+
+  const handleClearHistory = async () => {
+    if (!confirm("Очистить всю историю генераций?")) return
+    try {
+      await clearProjects()
+      setProjects([])
+    } catch {
+      // ignore
+    }
+  }
 
   const label = (p: Project) => {
     if (p.type === "apartment") return "Квартира"
@@ -555,6 +638,22 @@ function ProfileScreen({ onBack }: { onBack: () => void }) {
         Профиль привязан к вашему Telegram — все дизайны сохраняются автоматически
       </p>
 
+      {projects.length > 0 && (
+        <button type="button" className="clear-history-btn" onClick={handleClearHistory}>
+          Очистить историю
+        </button>
+      )}
+
+      {expandedImages && (
+        <ResultFullScreen
+          images={expandedImages}
+          onClose={() => setExpandedImages(null)}
+          title={expandedTitle}
+          subtitle="Сохранённая генерация"
+          initialIndex={expandedIndex}
+        />
+      )}
+
       {loading ? (
         <div className="loading">
           <div className="loading-spinner" />
@@ -573,7 +672,15 @@ function ProfileScreen({ onBack }: { onBack: () => void }) {
           {projects.flatMap((p, i) => {
             const imgs = p.images?.length ? p.images : (p.image ? [p.image] : [])
             return imgs.map((src, j) => (
-              <div key={`${i}-${j}`} className="gallery-item">
+              <div
+                key={`${i}-${j}`}
+                className="gallery-item"
+                onClick={() => {
+                  setExpandedImages(imgs)
+                  setExpandedTitle(label(p))
+                  setExpandedIndex(j)
+                }}
+              >
                 <div className="gallery-image-wrap">
                   <img src={src} alt={label(p)} />
                 </div>

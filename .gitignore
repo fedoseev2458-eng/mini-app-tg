@@ -1,0 +1,59 @@
+# Секреты и переменные окружения
+.env
+.env.local
+.env.*.local
+backend/.env
+frontend/.env
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.npm
+.eslintcache
+
+# Сборка фронтенда
+frontend/dist/
+frontend/dist-deploy/
+frontend/.vite/
+frontend/build/
+
+# Cloudflare (больше не используется)
+.wrangler/
+wrangler.toml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Логи
+*.log
+logs/
+
+# Временные файлы
+*.tmp
+*.temp
+.cache/
+
+# Railway
+.railway/
