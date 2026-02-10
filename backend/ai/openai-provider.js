@@ -1,6 +1,3 @@
-const fs = require("fs");
-const path = require("path");
-const os = require("os");
 const OpenAI = require("openai");
 const { getRoomPrompt, getApartmentViewPrompts } = require("./prompts");
 const { STYLES, BUDGETS } = require("./styles");
@@ -16,23 +13,17 @@ function truncatePrompt(p, max) {
 }
 
 async function editImage(imagePngBuffer, prompt, filename = "room.png") {
-  const tmpDir = os.tmpdir();
-  const tmpPath = path.join(tmpDir, filename);
-  fs.writeFileSync(tmpPath, imagePngBuffer);
-  try {
-    const data = await client.images.edit({
-      model: EDIT_MODEL,
-      image: fs.createReadStream(tmpPath),
-      prompt: truncatePrompt(prompt, PROMPT_MAX_CHARS),
-      size: "1024x1024",
-    });
-    const d = data.data[0];
-    if (d?.url) return d.url;
-    if (d?.b64_json) return `data:image/png;base64,${d.b64_json}`;
-    throw new Error("No image data");
-  } finally {
-    try { fs.unlinkSync(tmpPath); } catch (_) {}
-  }
+  const file = new File([imagePngBuffer], filename, { type: "image/png" });
+  const data = await client.images.edit({
+    model: EDIT_MODEL,
+    image: file,
+    prompt: truncatePrompt(prompt, PROMPT_MAX_CHARS),
+    size: "1024x1024",
+  });
+  const d = data.data[0];
+  if (d?.url) return d.url;
+  if (d?.b64_json) return `data:image/png;base64,${d.b64_json}`;
+  throw new Error("No image data");
 }
 
 class OpenAIProvider {
