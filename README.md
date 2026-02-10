@@ -11,7 +11,7 @@ Telegram Mini App для дизайна интерьера с ИИ.
 
 ## Технологии
 
-- **Backend:** FastAPI (Python) с OpenAI или Gemini
+- **Backend:** Node.js (Express) с OpenAI или Gemini
 - **Frontend:** React + TypeScript + Vite
 - **Деплой:** Railway
 
@@ -23,9 +23,11 @@ Telegram Mini App для дизайна интерьера с ИИ.
 cd backend
 cp .env.example .env
 # Заполните OPENAI_API_KEY или GEMINI_API_KEY
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+npm install
+npm start
 ```
+
+Порт по умолчанию: 8000 (или задайте `PORT` в `.env`).
 
 ### Фронтенд
 
@@ -74,10 +76,8 @@ ngrok http 8000
    - `GEMINI_API_KEY` — только если `AI_PROVIDER=gemini`
    - `PORT` — Railway установит автоматически, не меняйте
 
-3. **Настройте деплой:**
-   - Railway автоматически определит Python проект по `Procfile`
-   - Сборка фронтенда происходит автоматически (см. `railway.json`)
-   - Бэкенд запускается через `Procfile`
+3. **Настройка деплоя:**
+   - Railway собирает фронтенд по `railway.json` (buildCommand), затем запускает бэкенд по `Procfile` (Node.js)
 
 4. **Получите URL:** Railway выдаст HTTPS URL вида `https://room-ai-production.up.railway.app`
 
