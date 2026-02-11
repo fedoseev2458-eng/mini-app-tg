@@ -4,7 +4,7 @@ const sharp = require("sharp");
 const { getRoomPrompt, getApartmentViewPrompts } = require("./prompts");
 const { STYLES, BUDGETS } = require("./styles");
 const { PROMPT_MAX_CHARS, APARTMENT_IMAGES_COUNT } = require("./config");
-const { toPngForApi, createMask } = require("../image-utils");
+const { toPngForApi, createMask, toPngWithTransparentEdges } = require("../image-utils");
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -14,17 +14,37 @@ function truncatePrompt(p, max) {
   return p.length > max ? p.slice(0, max) : p;
 }
 
-async function editImage(imagePngBuffer, prompt, filename = "room.png", maskSize = 1024) {
-  const imageFile = new File([imagePngBuffer], filename, { type: "image/png" });
-  const maskBuffer = await createMask(maskSize);
-  const maskFile = new File([maskBuffer], "mask.png", { type: "image/png" });
-  const data = await client.images.edit({
+async function editImage(imagePngBuffer, prompt, filename = "room.png", maskSize = 1024, useTransparentImage = false) {
+  let imageFile;
+  let maskFile;
+  
+  if (useTransparentImage) {
+    // Используем изображение с прозрачными областями вместо маски
+    const imageWithTransparency = await toPngWithTransparentEdges(imagePngBuffer);
+    imageFile = new File([imageWithTransparency], filename, { type: "image/png" });
+  } else {
+    // Используем изображение + отдельная маска
+    imageFile = new File([imagePngBuffer], filename, { type: "image/png" });
+    const maskBuffer = await createMask(maskSize);
+    maskFile = new File([maskBuffer], "mask.png", { type: "image/png" });
+  }
+  
+  // Убеждаемся, что промпт явно просит изменить изображение
+  const enhancedPrompt = `Completely redesign and transform this image. ${truncatePrompt(prompt, PROMPT_MAX_CHARS - 100)} Generate a completely new and different design.`;
+  
+  const editParams = {
     model: EDIT_MODEL,
     image: imageFile,
-    mask: maskFile,
-    prompt: truncatePrompt(prompt, PROMPT_MAX_CHARS),
+    prompt: enhancedPrompt,
     size: "1024x1024",
-  });
+    n: 1,
+  };
+  
+  if (maskFile) {
+    editParams.mask = maskFile;
+  }
+  
+  const data = await client.images.edit(editParams);
   const d = data.data[0];
   if (d?.url) return d.url;
   if (d?.b64_json) return `data:image/png;base64,${d.b64_json}`;
@@ -36,7 +56,7 @@ class OpenAIProvider {
     const styleDesc = STYLES[style] || STYLES.minimalist;
     const budgetDesc = BUDGETS[budget] || BUDGETS.medium;
     const prompt = getRoomPrompt(roomType, styleDesc, budgetDesc, userText || "");
-    const full = `Transform this room image into a ${styleDesc} style ${roomType}. ${prompt} Completely redesign: replace all furniture with new ${styleDesc} pieces, change wall colors, update flooring, add new decor and accessories. Transform the entire space while maintaining the same camera angle and room structure. Create a brand new interior design that matches the ${styleDesc} aesthetic.`;
+    const full = `Completely redesign and transform this entire room image. Replace everything: all furniture, all decor, all colors, all materials. Create a completely new ${styleDesc} style ${roomType} interior design. ${prompt} The room must look completely different from the original while keeping the same camera angle and room layout structure. Generate a brand new interior design with ${styleDesc} furniture, ${styleDesc} colors, ${styleDesc} decor.`;
     const png = await toPngForApi(imageBytes);
     const meta = await sharp(png).metadata();
     const size = meta.width || 1024;

@@ -32,6 +32,58 @@ async function toPngForApi(imageBuffer) {
 }
 
 /**
+ * Создаёт версию изображения с прозрачными областями по краям для Edit API без маски.
+ * Прозрачные области будут редактироваться согласно промпту.
+ */
+async function toPngWithTransparentEdges(imageBuffer, edgeSizePercent = 5) {
+  const png = await toPngForApi(imageBuffer);
+  const meta = await sharp(png).metadata();
+  const size = meta.width || 1024;
+  const edgeSize = Math.max(10, Math.floor(size * edgeSizePercent / 100));
+  
+  // Создаём маску с прозрачными краями
+  const mask = await sharp({
+    create: {
+      width: size,
+      height: size,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  })
+    .composite([
+      {
+        input: Buffer.from([255, 255, 255, 255]),
+        raw: { width: 1, height: 1, channels: 4 },
+        tile: true,
+        left: edgeSize,
+        top: edgeSize,
+      },
+    ])
+    .extract({
+      left: edgeSize,
+      top: edgeSize,
+      width: size - edgeSize * 2,
+      height: size - edgeSize * 2,
+    })
+    .extend({
+      top: edgeSize,
+      bottom: edgeSize,
+      left: edgeSize,
+      right: edgeSize,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .resize(size, size)
+    .png()
+    .toBuffer();
+  
+  // Применяем маску к изображению
+  return sharp(png)
+    .composite([{ input: mask, blend: "dest-in" }])
+    .png()
+    .toBuffer();
+}
+
+/**
  * Создаёт полностью белую маску для Edit API.
  * Белые пиксели = области для редактирования (всё изображение).
  * Размер должен точно совпадать с размером изображения.
@@ -51,4 +103,4 @@ async function createMask(size) {
     .toBuffer();
 }
 
-module.exports = { toPngForApi, createMask };
+module.exports = { toPngForApi, createMask, toPngWithTransparentEdges };
