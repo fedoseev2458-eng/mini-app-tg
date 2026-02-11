@@ -11,6 +11,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.21.0",
+    "formdata-node": "^6.0.3",
     "multer": "^1.4.5-lts.1",
     "openai": "^4.73.0",
     "sharp": "^0.33.0"

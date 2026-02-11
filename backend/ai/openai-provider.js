@@ -1,4 +1,5 @@
 const OpenAI = require("openai");
+const { File } = require("formdata-node");
 const { getRoomPrompt, getApartmentViewPrompts } = require("./prompts");
 const { STYLES, BUDGETS } = require("./styles");
 const { PROMPT_MAX_CHARS, APARTMENT_IMAGES_COUNT } = require("./config");
