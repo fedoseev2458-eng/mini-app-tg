@@ -21,14 +21,14 @@ async function toPngForApi(imageBuffer) {
 
   for (const dim of [EDIT_SIZE, 768, 512, 256]) {
     const png = await sharp(imageBuffer)
-      .flatten({ background: { r: 255, g: 255, b: 255 } })
       .extract(extract)
       .resize(dim, dim)
+      .ensureAlpha()
       .png()
       .toBuffer();
     if (png.length <= MAX_SIZE_BYTES) return png;
   }
-  return sharp(imageBuffer).flatten({ background: { r: 255, g: 255, b: 255 } }).extract(extract).resize(256, 256).png().toBuffer();
+  return sharp(imageBuffer).extract(extract).resize(256, 256).ensureAlpha().png().toBuffer();
 }
 
 module.exports = { toPngForApi };
