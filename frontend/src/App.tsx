@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { initTelegram, getTelegramUserId } from "./telegram"
-import { getProjects, clearProjects, redesignRoom, redesignApartment, redesignApartmentSingle, type Project } from "./api"
+import { getProjects, clearProjects, redesignRoom, redesignApartmentSingle, type Project } from "./api"
 import "./styles.css"
 
 type Screen = "home" | "room" | "apartment" | "ar" | "profile"
