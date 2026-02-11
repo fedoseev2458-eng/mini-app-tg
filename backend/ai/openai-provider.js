@@ -1,5 +1,8 @@
 const OpenAI = require("openai");
-const { File } = require("formdata-node");
+const fs = require("fs");
+const path = require("path");
+const os = require("os");
+const { fileFromPath } = require("formdata-node/file-from-path");
 const sharp = require("sharp");
 const { getRoomPrompt, getApartmentViewPrompts } = require("./prompts");
 const { STYLES, BUDGETS } = require("./styles");
@@ -15,40 +18,59 @@ function truncatePrompt(p, max) {
 }
 
 async function editImage(imagePngBuffer, prompt, filename = "room.png", maskSize = 1024, useTransparentImage = false) {
-  let imageFile;
-  let maskFile;
+  const tmpDir = os.tmpdir();
+  const imagePath = path.join(tmpDir, `image_${Date.now()}_${filename}`);
+  let maskPath = null;
   
-  if (useTransparentImage) {
-    // Используем изображение с прозрачными областями вместо маски
-    const imageWithTransparency = await toPngWithTransparentEdges(imagePngBuffer);
-    imageFile = new File([imageWithTransparency], filename, { type: "image/png" });
-  } else {
-    // Используем изображение + отдельная маска
-    imageFile = new File([imagePngBuffer], filename, { type: "image/png" });
-    const maskBuffer = await createMask(maskSize);
-    maskFile = new File([maskBuffer], "mask.png", { type: "image/png" });
+  try {
+    // Записываем изображение во временный файл
+    if (useTransparentImage) {
+      const imageWithTransparency = await toPngWithTransparentEdges(imagePngBuffer);
+      fs.writeFileSync(imagePath, imageWithTransparency);
+    } else {
+      fs.writeFileSync(imagePath, imagePngBuffer);
+    }
+    
+    // Создаём File объекты из файлов с правильным MIME типом
+    const imageFile = await fileFromPath(imagePath, { type: "image/png" });
+    
+    let maskFile = null;
+    if (!useTransparentImage) {
+      const maskBuffer = await createMask(maskSize);
+      maskPath = path.join(tmpDir, `mask_${Date.now()}.png`);
+      fs.writeFileSync(maskPath, maskBuffer);
+      maskFile = await fileFromPath(maskPath, { type: "image/png" });
+    }
+    
+    // Убеждаемся, что промпт явно просит изменить изображение
+    const enhancedPrompt = `Completely redesign and transform this image. ${truncatePrompt(prompt, PROMPT_MAX_CHARS - 100)} Generate a completely new and different design.`;
+    
+    const editParams = {
+      model: EDIT_MODEL,
+      image: imageFile,
+      prompt: enhancedPrompt,
+      size: "1024x1024",
+      n: 1,
+    };
+    
+    if (maskFile) {
+      editParams.mask = maskFile;
+    }
+    
+    const data = await client.images.edit(editParams);
+    const d = data.data[0];
+    if (d?.url) return d.url;
+    if (d?.b64_json) return `data:image/png;base64,${d.b64_json}`;
+    throw new Error("No image data");
+  } finally {
+    // Удаляем временные файлы
+    try {
+      if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
+      if (maskPath && fs.existsSync(maskPath)) fs.unlinkSync(maskPath);
+    } catch (err) {
+      console.error("Failed to cleanup temp files:", err);
+    }
   }
-  
-  // Убеждаемся, что промпт явно просит изменить изображение
-  const enhancedPrompt = `Completely redesign and transform this image. ${truncatePrompt(prompt, PROMPT_MAX_CHARS - 100)} Generate a completely new and different design.`;
-  
-  const editParams = {
-    model: EDIT_MODEL,
-    image: imageFile,
-    prompt: enhancedPrompt,
-    size: "1024x1024",
-    n: 1,
-  };
-  
-  if (maskFile) {
-    editParams.mask = maskFile;
-  }
-  
-  const data = await client.images.edit(editParams);
-  const d = data.data[0];
-  if (d?.url) return d.url;
-  if (d?.b64_json) return `data:image/png;base64,${d.b64_json}`;
-  throw new Error("No image data");
 }
 
 class OpenAIProvider {
