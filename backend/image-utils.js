@@ -31,4 +31,24 @@ async function toPngForApi(imageBuffer) {
   return sharp(imageBuffer).extract(extract).resize(256, 256).ensureAlpha().png().toBuffer();
 }
 
-module.exports = { toPngForApi };
+/**
+ * Создаёт полностью белую маску для Edit API.
+ * Белые пиксели = области для редактирования (всё изображение).
+ * Размер должен точно совпадать с размером изображения.
+ */
+async function createMask(size) {
+  // Создаём полностью белое изображение с альфа-каналом
+  // Белый цвет (255,255,255) в маске означает "редактировать эту область"
+  return sharp({
+    create: {
+      width: size,
+      height: size,
+      channels: 4,
+      background: { r: 255, g: 255, b: 255, alpha: 1.0 },
+    },
+  })
+    .png({ compressionLevel: 9 })
+    .toBuffer();
+}
+
+module.exports = { toPngForApi, createMask };

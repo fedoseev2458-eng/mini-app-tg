@@ -74,3 +74,24 @@ export async function redesignApartment(
   }
   return r.json()
 }
+
+export async function redesignApartmentSingle(
+  plan: File,
+  preferences: string,
+  index: number
+): Promise<{ image: string; index: number }> {
+  const form = new FormData()
+  form.append("plan", plan)
+  form.append("preferences", preferences)
+  form.append("index", index.toString())
+  const r = await fetch(`${API_BASE}/api/redesign-apartment-single`, {
+    method: "POST",
+    headers: headers(),
+    body: form,
+  })
+  if (!r.ok) {
+    const data = await r.json().catch(() => ({}))
+    throw new Error((data as { error?: string }).error || await r.text())
+  }
+  return r.json()
+}

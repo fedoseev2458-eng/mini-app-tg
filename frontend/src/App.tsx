@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { initTelegram, getTelegramUserId } from "./telegram"
-import { getProjects, clearProjects, redesignRoom, redesignApartment, type Project } from "./api"
+import { getProjects, clearProjects, redesignRoom, redesignApartment, redesignApartmentSingle, type Project } from "./api"
 import "./styles.css"
 
 type Screen = "home" | "room" | "apartment" | "ar" | "profile"
@@ -495,6 +495,7 @@ function ApartmentScreen({ onBack }: { onBack: () => void }) {
   const [loading, setLoading] = useState(false)
   const [resultUrls, setResultUrls] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [progress, setProgress] = useState(0)
 
   const handleSubmit = async () => {
     if (!plan) {
@@ -507,9 +508,22 @@ function ApartmentScreen({ onBack }: { onBack: () => void }) {
     }
     setError(null)
     setLoading(true)
+    setProgress(0)
     try {
-      const res = await redesignApartment(plan, preferences.trim())
-      setResultUrls(res.images || [])
+      const totalImages = 5
+      const images: string[] = new Array(totalImages)
+      const promises = Array.from({ length: totalImages }, (_, i) =>
+        redesignApartmentSingle(plan, preferences.trim(), i)
+          .then((res) => {
+            images[res.index] = res.image
+            setProgress((prev) => prev + 1)
+          })
+          .catch((err) => {
+            throw err
+          })
+      )
+      await Promise.all(promises)
+      setResultUrls(images.filter(Boolean))
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Ошибка генерации"
       const isNetwork = /failed to fetch|load failed|network/i.test(msg)
@@ -520,6 +534,7 @@ function ApartmentScreen({ onBack }: { onBack: () => void }) {
       )
     } finally {
       setLoading(false)
+      setProgress(0)
     }
   }
 
@@ -579,7 +594,7 @@ function ApartmentScreen({ onBack }: { onBack: () => void }) {
           <div className="loading-overlay-content">
             <div className="loading-spinner" />
             <p className="loading-overlay-title">Подождите</p>
-            <p className="loading-overlay-desc">Идёт генерация дизайн-проекта (5 фотографий)...</p>
+            <p className="loading-overlay-desc">Идёт генерация дизайн-проекта ({progress}/5 фотографий)...</p>
           </div>
         </div>
       )}

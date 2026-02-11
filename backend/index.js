@@ -131,6 +131,40 @@ app.post("/api/redesign-apartment", uploadPlan, async (req, res) => {
   }
 });
 
+app.post("/api/redesign-apartment-single", uploadPlan, async (req, res) => {
+  try {
+    const userId = req.headers["x-telegram-user-id"];
+    const plan = getUploadedFile(req, ["plan", "file"]);
+    if (!plan || !(plan.buffer && plan.buffer.length > 0)) {
+      return res.status(400).json({ error: "Загрузите изображение планировки (файл не получен или пустой)" });
+    }
+    const preferences = req.body?.preferences || "";
+    const index = parseInt(req.body?.index, 10);
+    if (isNaN(index) || index < 0) {
+      return res.status(400).json({ error: "Invalid index parameter" });
+    }
+    const provider = getAIProvider();
+    const imageUrl = await provider.redesignApartmentSingle(plan.buffer, preferences, index, plan.mimetype || "");
+    // Сохраняем проект (будет обновляться при каждом запросе, но это нормально)
+    if (userId) {
+      const existingProjects = getProjects(userId);
+      const existingApartment = existingProjects.find((p) => p.type === "apartment");
+      const images = existingApartment?.images || [];
+      images[index] = imageUrl;
+      saveProject(userId, { type: "apartment", images: images.filter(Boolean) });
+    }
+    res.json({ image: imageUrl, index });
+  } catch (err) {
+    if (err.status === 402 || (err.code && String(err.code).includes("rate_limit"))) {
+      return res.status(402).json({
+        error: "Закончился лимит OpenAI. Пополните баланс на platform.openai.com",
+      });
+    }
+    console.error("redesign-apartment-single failed", err);
+    res.status(500).json({ error: err.message || "Internal error" });
+  }
+});
+
 app.get("/projects", (req, res) => {
   const userId = req.headers["x-telegram-user-id"];
   res.json(getProjects(userId));

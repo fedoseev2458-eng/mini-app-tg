@@ -1,11 +1,11 @@
 function getRoomPrompt(roomType, styleDesc, budgetDesc, userText) {
   const userPart = userText && userText.trim() ? ` Client wishes: ${userText}.` : "";
   return (
-    "Keep camera angle and room layout from the description. Same viewpoint and perspective. " +
-    "Furniture can be updated to match the new style — same positions preferred, but new pieces allowed. " +
-    "Walls, floor, windows, light positions — same. Furniture may be replaced with style-appropriate pieces. " +
-    `Room: ${roomType}. Style: ${styleDesc}. Budget: ${budgetDesc}.${userPart} ` +
-    "Photorealistic interior, natural lighting."
+    `Transform this room into a ${styleDesc} style ${roomType}. ` +
+    `Budget level: ${budgetDesc}.${userPart} ` +
+    "Maintain the same camera angle and room structure. " +
+    "Replace furniture, change colors, update materials and decor to match the new style. " +
+    "Photorealistic interior design, natural lighting, professional photography quality."
   ).trim();
 }
 
