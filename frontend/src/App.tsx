@@ -627,15 +627,28 @@ function isMobile() {
 
 function ArScreen({ onBack }: { onBack: () => void }) {
   const [arHint, setArHint] = useState<string | null>(null)
-  const glbUrl = typeof window !== "undefined" ? window.location.origin + "/chair.glb" : "/chair.glb"
-  const usdzUrl = typeof window !== "undefined" ? window.location.origin + "/chair.usdz" : "/chair.usdz"
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  
+  // Используем относительные пути - файлы в public/
+  const glbUrl = "/chair.glb"
+  const usdzUrl = "/chair.usdz"
 
   const handleArReady = () => {
+    setLoading(false)
     setArHint(null)
+    setError(null)
   }
 
-  const handleArError = () => {
-    setArHint("AR не поддерживается на этом устройстве. Попробуйте на телефоне с поддержкой AR.")
+  const handleArError = (e?: Event) => {
+    setLoading(false)
+    console.error("Model viewer error:", e)
+    setError("Не удалось загрузить 3D модель. Проверьте подключение к интернету.")
+  }
+
+  const handleModelLoad = () => {
+    setLoading(false)
+    setError(null)
   }
 
   return (
@@ -655,6 +668,34 @@ function ArScreen({ onBack }: { onBack: () => void }) {
           Покрутите стул пальцем, увеличьте или уменьшите. Нажмите «Посмотреть в комнате» и наведите камеру на пол — стул появится у вас в комнате.
         </p>
         <div className="ar-demo-viewer">
+          {loading && (
+            <div style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              zIndex: 1,
+              color: "var(--text-muted)",
+              textAlign: "center",
+            }}>
+              <div className="loading-spinner" style={{ margin: "0 auto 12px" }} />
+              <p>Загрузка модели...</p>
+            </div>
+          )}
+          {error && (
+            <div style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              zIndex: 2,
+              color: "var(--accent)",
+              textAlign: "center",
+              padding: "20px",
+            }}>
+              <p>{error}</p>
+            </div>
+          )}
           <model-viewer
             src={glbUrl}
             ios-src={usdzUrl}
@@ -668,13 +709,19 @@ function ArScreen({ onBack }: { onBack: () => void }) {
             disable-zoom={false}
             auto-rotate
             rotation-per-second="30deg"
+            loading="eager"
+            reveal="auto"
+            exposure="1"
+            environment-image="neutral"
+            shadow-intensity="1"
             style={{
               width: "100%",
               height: "400px",
               backgroundColor: "var(--bg-elevated)",
               borderRadius: "var(--radius)",
+              display: error ? "none" : "block",
             }}
-            onLoad={handleArReady}
+            onLoad={handleModelLoad}
             onError={handleArError}
           >
             <button slot="ar-button" className="ar-view-in-room-btn">

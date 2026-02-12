@@ -830,6 +830,12 @@ model-viewer {
   min-height: 400px;
   --poster-color: transparent;
   --progress-bar-color: var(--accent);
+  --progress-mask: transparent;
+  background-color: var(--bg-elevated);
+}
+
+model-viewer::part(default-ar-button) {
+  display: none;
 }
 
 .ar-demo-preview {
