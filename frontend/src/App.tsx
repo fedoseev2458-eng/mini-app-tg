@@ -621,22 +621,8 @@ function ApartmentScreen({ onBack }: { onBack: () => void }) {
   )
 }
 
-// USDZ для iOS — хостится на нашем домене после деплоя (файл в public/)
-function getArDemoIosUsdz() {
-  if (typeof window === "undefined") return "/chair.usdz"
-  return window.location.origin + "/chair.usdz"
-}
-
 function isMobile() {
   return /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent)
-}
-
-function isAndroid() {
-  return /Android/i.test(navigator.userAgent)
-}
-
-function isIOS() {
-  return /iPhone|iPad|iPod/i.test(navigator.userAgent)
 }
 
 function ArScreen({ onBack }: { onBack: () => void }) {
