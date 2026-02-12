@@ -832,10 +832,15 @@ model-viewer {
   --progress-bar-color: var(--accent);
   --progress-mask: transparent;
   background-color: var(--bg-elevated);
+  display: block;
 }
 
 model-viewer::part(default-ar-button) {
   display: none;
+}
+
+model-viewer::part(poster) {
+  background-color: var(--bg-elevated);
 }
 
 .ar-demo-preview {

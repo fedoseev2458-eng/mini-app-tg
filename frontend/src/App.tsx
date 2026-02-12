@@ -626,60 +626,27 @@ function isMobile() {
 }
 
 function ArScreen({ onBack }: { onBack: () => void }) {
-  const [arHint, setArHint] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [modelViewerReady, setModelViewerReady] = useState(false)
-  
-  // Используем относительные пути - файлы в public/
+  // Используем локальные файлы из public/
   const glbUrl = "/chair.glb"
   const usdzUrl = "/chair.usdz"
-
-  useEffect(() => {
-    // Проверяем, что model-viewer загружен
-    const checkModelViewer = () => {
-      if (customElements.get("model-viewer")) {
-        setModelViewerReady(true)
-        setLoading(false)
+  const fullGlbUrl = typeof window !== "undefined" ? window.location.origin + glbUrl : glbUrl
+  
+  const handleViewInRoom = () => {
+    if (isMobile()) {
+      if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        // iOS - Quick Look
+        const link = document.createElement("a")
+        link.href = usdzUrl
+        link.setAttribute("rel", "ar")
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
       } else {
-        setTimeout(checkModelViewer, 100)
+        // Android - Scene Viewer
+        const sceneViewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(fullGlbUrl)}&mode=ar_only`
+        window.open(sceneViewerUrl, "_blank")
       }
     }
-    checkModelViewer()
-
-    // Проверяем доступность файла
-    fetch(glbUrl, { method: "HEAD" })
-      .then((res) => {
-        if (!res.ok) {
-          setError(`Файл модели не найден (${res.status})`)
-          setLoading(false)
-        }
-      })
-      .catch((err) => {
-        console.error("File check error:", err)
-        setError("Не удалось проверить доступность файла модели")
-        setLoading(false)
-      })
-  }, [])
-
-  const handleArReady = () => {
-    setLoading(false)
-    setArHint(null)
-    setError(null)
-  }
-
-  const handleArError = (e?: Event) => {
-    setLoading(false)
-    console.error("Model viewer error:", e)
-    const target = e?.target as HTMLElement
-    const errorMsg = target?.getAttribute("error-message") || "Не удалось загрузить 3D модель"
-    setError(errorMsg)
-  }
-
-  const handleModelLoad = () => {
-    setLoading(false)
-    setError(null)
-    console.log("Model loaded successfully")
   }
 
   return (
@@ -698,85 +665,36 @@ function ArScreen({ onBack }: { onBack: () => void }) {
         <p className="ar-demo-desc">
           Покрутите стул пальцем, увеличьте или уменьшите. Нажмите «Посмотреть в комнате» и наведите камеру на пол — стул появится у вас в комнате.
         </p>
-        <div className="ar-demo-viewer">
-          {loading && (
-            <div style={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              zIndex: 1,
-              color: "var(--text-muted)",
-              textAlign: "center",
-            }}>
-              <div className="loading-spinner" style={{ margin: "0 auto 12px" }} />
-              <p>Загрузка модели...</p>
-            </div>
-          )}
-          {error && (
-            <div style={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              zIndex: 2,
-              color: "var(--accent)",
-              textAlign: "center",
-              padding: "20px",
-            }}>
-              <p>{error}</p>
-            </div>
-          )}
-          {modelViewerReady ? (
-            <model-viewer
-              src={glbUrl}
-              ios-src={usdzUrl}
-              alt="3D стул"
-              ar
-              ar-modes="webxr scene-viewer quick-look"
-              ar-scale="auto"
-              ar-placement="floor"
-              camera-controls
-              touch-action="pan-y"
-              disable-zoom={false}
-              auto-rotate
-              rotation-per-second="30deg"
-              loading="eager"
-              reveal="auto"
-              exposure="1"
-              environment-image="neutral"
-              shadow-intensity="1"
-              interaction-policy="allow-when-focused"
-              style={{
-                width: "100%",
-                height: "400px",
-                backgroundColor: "var(--bg-elevated)",
-                borderRadius: "var(--radius)",
-                display: error ? "none" : "block",
-              }}
-          ) : (
-            <div style={{
+        <div className="ar-demo-viewer" style={{ position: "relative", width: "100%", height: "400px", backgroundColor: "var(--bg-elevated)", borderRadius: "var(--radius)", overflow: "hidden" }}>
+          <model-viewer
+            src={glbUrl}
+            ios-src={usdzUrl}
+            alt="3D стул"
+            ar
+            ar-modes="webxr scene-viewer quick-look"
+            ar-scale="auto"
+            ar-placement="floor"
+            camera-controls
+            touch-action="pan-y"
+            auto-rotate
+            rotation-per-second="30deg"
+            loading="eager"
+            reveal="auto"
+            exposure="1"
+            shadow-intensity="1"
+            interaction-policy="allow-when-focused"
+            style={{
               width: "100%",
-              height: "400px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: "var(--bg-elevated)",
-              borderRadius: "var(--radius)",
-              color: "var(--text-muted)",
-            }}>
-              <div style={{ textAlign: "center" }}>
-                <div className="loading-spinner" style={{ margin: "0 auto 12px" }} />
-                <p>Загрузка 3D просмотрщика...</p>
-              </div>
-            </div>
-          )}
-            <button slot="ar-button" className="ar-view-in-room-btn">
+              height: "100%",
+              backgroundColor: "transparent",
+              display: "block",
+            }}
+          >
+            <button slot="ar-button" className="ar-view-in-room-btn" onClick={handleViewInRoom}>
               Посмотреть в комнате
             </button>
           </model-viewer>
         </div>
-        {arHint && <p className="ar-demo-feedback">{arHint}</p>}
         <p className="ar-demo-hint">
           {isMobile()
             ? "Покрутите стул пальцем. Нажмите «Посмотреть в комнате» для AR."
