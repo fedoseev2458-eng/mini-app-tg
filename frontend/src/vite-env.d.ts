@@ -16,26 +16,15 @@ declare namespace JSX {
         "disable-zoom"?: boolean | string
         "auto-rotate"?: boolean | string
         "rotation-per-second"?: string
-        onLoad?: () => void
-        onError?: () => void
-        slot?: string
-      },
-      HTMLElement
-    >
-  }
-}
-
-declare namespace JSX {
-  interface IntrinsicElements {
-    "model-viewer": React.DetailedHTMLProps<
-      React.HTMLAttributes<HTMLElement> & {
-        src?: string
-        ar?: boolean
-        "ar-modes"?: string
-        "camera-controls"?: boolean
-        alt?: string
+        loading?: string
+        reveal?: string
+        exposure?: string
         "environment-image"?: string
         "shadow-intensity"?: string
+        "interaction-policy"?: string
+        onLoad?: () => void
+        onError?: (e?: Event) => void
+        slot?: string
         style?: React.CSSProperties
       },
       HTMLElement
