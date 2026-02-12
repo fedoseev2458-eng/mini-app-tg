@@ -641,18 +641,15 @@ function isIOS() {
 
 function ArScreen({ onBack }: { onBack: () => void }) {
   const [arHint, setArHint] = useState<string | null>(null)
+  const glbUrl = typeof window !== "undefined" ? window.location.origin + "/chair.glb" : "/chair.glb"
+  const usdzUrl = typeof window !== "undefined" ? window.location.origin + "/chair.usdz" : "/chair.usdz"
 
-  const handleArClick = async () => {
+  const handleArReady = () => {
     setArHint(null)
-    if (!isMobile()) {
-      setArHint("AR работает только на телефоне. Откройте приложение с телефона.")
-      return
-    }
-    if (!isAndroid()) return
-    const glbUrl = typeof window !== "undefined" ? window.location.origin + "/chair.glb" : "/chair.glb"
-    const sceneViewerUrl = `https://arvr.google.com/scene-viewer/1.2?mode=ar_preferred&file=${encodeURIComponent(glbUrl)}`
-    const opened = window.open(sceneViewerUrl, "_blank", "noopener")
-    setArHint(opened ? "Открылась вкладка — нажмите «Посмотреть в комнате» там." : "Разрешите всплывающие окна и нажмите снова.")
+  }
+
+  const handleArError = () => {
+    setArHint("AR не поддерживается на этом устройстве. Попробуйте на телефоне с поддержкой AR.")
   }
 
   return (
@@ -663,39 +660,47 @@ function ArScreen({ onBack }: { onBack: () => void }) {
 
       <h1>AR — мебель в комнате</h1>
       <p className="subtitle">
-        Подключите магазин мебели или попробуйте тестовый диван в дополненной реальности
+        Подключите магазин мебели или попробуйте тестовый стул в дополненной реальности
       </p>
 
       <section className="ar-demo">
         <h2 className="ar-demo-title">Попробовать AR</h2>
         <p className="ar-demo-desc">
-          Нажмите «Посмотреть в комнате» и наведите камеру на пол — стул появится у вас в комнате.
-          Лучше всего открыть с телефона.
+          Покрутите стул пальцем, увеличьте или уменьшите. Нажмите «Посмотреть в комнате» и наведите камеру на пол — стул появится у вас в комнате.
         </p>
         <div className="ar-demo-viewer">
-          <div className="ar-demo-preview">
-            <div className="ar-demo-preview-icon" aria-hidden>AR</div>
-            <p className="ar-demo-preview-text">Стул в AR</p>
-          </div>
-          {isIOS() ? (
-            <a
-              rel="ar"
-              href={getArDemoIosUsdz()}
-              className="ar-view-in-room-btn"
-            >
-              Посмотреть в комнате
-            </a>
-          ) : (
-            <button type="button" className="ar-view-in-room-btn" onClick={handleArClick}>
+          <model-viewer
+            src={glbUrl}
+            ios-src={usdzUrl}
+            alt="3D стул"
+            ar
+            ar-modes="webxr scene-viewer quick-look"
+            ar-scale="auto"
+            ar-placement="floor"
+            camera-controls
+            touch-action="pan-y"
+            disable-zoom={false}
+            auto-rotate
+            rotation-per-second="30deg"
+            style={{
+              width: "100%",
+              height: "400px",
+              backgroundColor: "var(--bg-elevated)",
+              borderRadius: "var(--radius)",
+            }}
+            onLoad={handleArReady}
+            onError={handleArError}
+          >
+            <button slot="ar-button" className="ar-view-in-room-btn">
               Посмотреть в комнате
             </button>
-          )}
+          </model-viewer>
         </div>
         {arHint && <p className="ar-demo-feedback">{arHint}</p>}
         <p className="ar-demo-hint">
-          {isIOS()
-            ? "Нажмите кнопку — AR откроется прямо здесь."
-            : "На Android откроется вкладка с просмотром в AR."}
+          {isMobile()
+            ? "Покрутите стул пальцем. Нажмите «Посмотреть в комнате» для AR."
+            : "На компьютере можно покрутить модель мышью. AR работает только на телефоне."}
         </p>
       </section>
 
